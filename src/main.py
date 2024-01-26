@@ -17,10 +17,15 @@ brain=Brain()
 
 brain.screen.print("Hello V5")
 
-P_turning = 1
-P_driving = 5
+P_turning = 2
+P_driving = 1
+D_driving = .1
 left_motor = Motor(Ports.PORT11)
 right_motor = Motor(Ports.PORT15)
+
+target_dist = 16
+last_error = target_dist
+e_delta = 0
 
 left_motor.set_reversed(True)
 
@@ -28,6 +33,7 @@ front_sonar = Sonar(brain.three_wire_port.a)
 right_sonar = Sonar(brain.three_wire_port.g)
 
 button = Bumper(brain.three_wire_port.e)
+e_stop = Bumper(brain.three_wire_port.f)
 
 IMU = Inertial(Ports.PORT13)
 
@@ -49,22 +55,33 @@ def idle():
     global bot_state
     global start_time
 
+    left_motor.stop()
+    right_motor.stop()
     sleep(10)
 
 def drive_forward():
     global bot_state
+    global last_error
+    global brain
     
     print(front_sonar.distance(DistanceUnits.CM))
-    if front_sonar.distance(DistanceUnits.CM)<10:
+    if front_sonar.distance(DistanceUnits.CM)<25:
         bot_state = "turn"
         # tell the sensor we are pointing forwards
         IMU.set_rotation(0)
     else:
         print("driving forwards")
-        error = right_sonar.distance(DistanceUnits.CM)
-        effort = P_driving*error
-        left_motor.spin(FORWARD, 100+effort, RPM)
-        right_motor.spin(FORWARD, 100-effort, RPM)
+
+        error = 16-right_sonar.distance(DistanceUnits.CM)
+        if abs(last_error-error)>40:
+            brain.screen.clear_screen(Color.CYAN)
+            error = last_error
+        error_delta = last_error - error
+        effort = P_driving*error + D_driving*error_delta
+
+        left_motor.spin(FORWARD, 170-effort, RPM)
+        right_motor.spin(FORWARD, 170+effort, RPM)
+        last_error = error
 
 
 def turn():
@@ -72,22 +89,28 @@ def turn():
     global legs_completed
 
     # start turning
-    error = (-90)-IMU.rotation()
+    error = (-80)-IMU.rotation()
     effort = P_turning*error
     
     if abs(error)<2:
         bot_state = "drive_forwards"
         legs_completed += 1
     else:
-        left_motor.spin(FORWARD, effort, RPM)
-        right_motor.spin(FORWARD, -1*effort, RPM)
+        left_motor.spin(FORWARD, 20+effort, RPM)
+        right_motor.spin(FORWARD, 20+-1*effort, RPM)
 
     sleep(10)
+
+def STOP():
+    global bot_state
+
+    bot_state = "idle"
 
 # need 2 second calibration time
 IMU.calibrate()
 
 button.pressed(start)
+e_stop.pressed(STOP)
 
 while True:
     print(bot_state)
@@ -109,7 +132,7 @@ while True:
     brain.screen.print_at(right_sonar.distance(DistanceUnits.CM), x=150, y=50)
     brain.screen.print_at(IMU.rotation(), x=50,y=100)
     brain.screen.print_at(elapsed_time, x=50, y=150)
-    sleep(50)
+    sleep(10)
 
 '''
 while left_motor.position()<360*5:
