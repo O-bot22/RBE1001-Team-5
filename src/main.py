@@ -48,7 +48,7 @@ def start():
     global bot_state
     
     print("starting...")
-    start_time = math.floor(time.time())
+    start_time = math.floor(time.time()*10)/10
     bot_state = "drive_forwards"
 
 def idle():
@@ -73,9 +73,11 @@ def drive_forward():
         print("driving forwards")
 
         error = 16-right_sonar.distance(DistanceUnits.CM)
+
         if abs(last_error-error)>40:
             brain.screen.clear_screen(Color.CYAN)
             error = last_error
+
         error_delta = last_error - error
         effort = P_driving*error + D_driving*error_delta
 
@@ -120,7 +122,8 @@ while True:
     elif legs_completed==4:
         left_motor.stop()
         right_motor.stop()
-        elapsed_time = math.floor(time.time())-start_time
+        elapsed_time = math.floor(time.time()*10)/10-start_time
+        bot_state = "idle"
     elif bot_state=="drive_forwards":
         brain.screen.clear_screen(Color.BLUE)
         drive_forward()
