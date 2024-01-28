@@ -1,6 +1,15 @@
 # ---------------------------------------------------------------------------- #
 #                                                                              #
 # 	Module:       main.py                                                      #
+# 	Author:       nicholaskruse                                                #
+# 	Created:      1/28/2024, 2:53:28 PM                                        #
+# 	Description:  V5 project                                                   #
+#                                                                              #
+# ---------------------------------------------------------------------------- #
+
+# ---------------------------------------------------------------------------- #
+#                                                                              #
+# 	Module:       main.py                                                      #
 # 	Author:       owenr                                                        #
 # 	Created:      1/15/2024, 10:18:04 PM                                       #
 # 	Description:  V5 project                                                   #
@@ -18,8 +27,8 @@ brain=Brain()
 brain.screen.print("Hello V5")
 
 P_turning = 2
-P_driving = 1
-D_driving = .1
+P_driving = 2
+D_driving = .25
 left_motor = Motor(Ports.PORT11)
 right_motor = Motor(Ports.PORT15)
 
@@ -46,9 +55,11 @@ elapsed_time = 0
 def start():
     global start_time
     global bot_state
+    global legs_completed
     
     print("starting...")
     start_time = math.floor(time.time()*10)/10
+    legs_completed = 0
     bot_state = "drive_forwards"
 
 def idle():
@@ -63,10 +74,12 @@ def drive_forward():
     global bot_state
     global last_error
     global brain
-    
+    global legs_completed
+
     print(front_sonar.distance(DistanceUnits.CM))
-    if front_sonar.distance(DistanceUnits.CM)<25:
+    if front_sonar.distance(DistanceUnits.CM)<30:
         bot_state = "turn"
+        legs_completed += 1
         # tell the sensor we are pointing forwards
         IMU.set_rotation(0)
     else:
@@ -88,18 +101,16 @@ def drive_forward():
 
 def turn():
     global bot_state
-    global legs_completed
 
     # start turning
-    error = (-80)-IMU.rotation()
+    error = (-90)-IMU.rotation()
     effort = P_turning*error
     
     if abs(error)<2:
         bot_state = "drive_forwards"
-        legs_completed += 1
     else:
-        left_motor.spin(FORWARD, 20+effort, RPM)
-        right_motor.spin(FORWARD, 20+-1*effort, RPM)
+        left_motor.spin(FORWARD, 25+effort, RPM)
+        right_motor.spin(FORWARD, 25+-1*effort, RPM)
 
     sleep(10)
 
@@ -118,11 +129,11 @@ while True:
     print(bot_state)
     if bot_state=="idle":
         idle()
-        brain.screen.clear_screen(Color.BLACK)
+        brain.screen.clear_screen(Color.RED)
     elif legs_completed==4:
         left_motor.stop()
         right_motor.stop()
-        elapsed_time = math.floor(time.time()*10)/10-start_time
+        elapsed_time = math.floor(time.time()*10)/10 - start_time
         bot_state = "idle"
     elif bot_state=="drive_forwards":
         brain.screen.clear_screen(Color.BLUE)
@@ -150,3 +161,4 @@ left_motor.reset_position()
 right_motor.reset_position()
 left_motor.spin_to_position(360*5, DEGREES, 30*5, RPM, False)
 right_motor.spin_to_position(360*5, DEGREES, 30*5, RPM, False)'''
+        
